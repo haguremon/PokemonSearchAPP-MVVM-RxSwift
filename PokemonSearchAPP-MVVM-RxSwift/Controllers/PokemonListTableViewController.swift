@@ -6,40 +6,80 @@
 //
 
 import UIKit
+import RxSwift
+import RxCocoa
+import SDWebImage
 
 class PokemonListTableViewController: UITableViewController {
 
+    let disposeBag = DisposeBag()
+
+    private var pokemonListVM = PokemonListViewModel()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        // Uncomment the following line to preserve selection between presentations
-        // self.clearsSelectionOnViewWillAppear = false
-
-        // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
-        // self.navigationItem.rightBarButtonItem = self.editButtonItem
+        
+        
+        
     }
 
     // MARK: - Table view data source
 
     override func numberOfSections(in tableView: UITableView) -> Int {
         // #warning Incomplete implementation, return the number of sections
-        return 0
+        return 1
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // #warning Incomplete implementation, return the number of rows
-        return 0
+        pokemonListVM.numberOfRows(section)
     }
 
-    /*
+
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "reuseIdentifier", for: indexPath)
+        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath) as! PokemonTableViewCell
+        
+        let pokemonVM = pokemonListVM.modelAt(indexPath.row)
+        
+        pokemonVM.name.asDriver(onErrorJustReturn: "").drive(cell.imagenmaeLabel.rx.text)
+            .disposed(by: disposeBag)
+    
+        pokemonVM.types.asDriver(onErrorJustReturn: "")
+            .drive(cell.typeLabel.rx.text)
+            .disposed(by: disposeBag)
 
-        // Configure the cell...
-
+        pokemonVM.pokemonImageUrl.asDriver(onErrorJustReturn: UIImage())
+            .drive(cell.searchImage.rx.image)
+            .disposed(by: disposeBag)
         return cell
     }
-    */
+    
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        
+        guard let nav = segue.destination as? UINavigationController else {
+            fatalError("NavigationController not found")
+        }
+        guard let pokemonSearchViewController = nav.viewControllers.first as? PokemonSearchViewController else {
+            fatalError("PokemonSearchViewController not found")
+        }
+        pokemonSearchViewController.pokemonSubjectObservable.subscribe { [ weak self ] pokemonViewModel in
+            
+            guard let pokemonViewModel = pokemonViewModel.element else { return print("error") }
+        
+            
+            self?.pokemonListVM.addPokemonViewModel(pokemonViewModel)
+            
+            DispatchQueue.main.async {
+                self?.tableView.reloadData()
+            }
+            
+        }.disposed(by: disposeBag)
+    }
+    
+
+
+    
 
     /*
     // Override to support conditional editing of the table view.
